@@ -72,7 +72,7 @@ export default async function handler(req, res) {
                 const audioBuffer = Buffer.from(audioData, 'base64');
 
                 const boundary = 'Boundary-' + Math.random().toString(36).substring(2);
-                const header = Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="audio"; filename="record.webm"\r\nContent-Type: audio/webm\r\n\r\n`);
+                const header = Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="voice"; filename="record.webm"\r\nContent-Type: audio/webm\r\n\r\n`);
                 const footer = Buffer.from(`\r\n--${boundary}--\r\n`);
                 const multipartBody = Buffer.concat([header, audioBuffer, footer]);
 
